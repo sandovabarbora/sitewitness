@@ -41,7 +41,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "search",
-        "description": "Search the site's texts. Returns up to k passages with ids, page URLs and text.",
+        "description": "Search the site's texts. Returns up to k passages (paragraphs) with ids, page URLs and full text. To quote from one, call quote with its id.",
         "input_schema": {
             "type": "object",
             "properties": {"query": {"type": "string"}, "k": {"type": "integer"}},
@@ -124,7 +124,7 @@ def run_tool(
         k = int(inp.get("k") or 6)
         hits = index.search(str(inp.get("query", "")), k=k, embedder=embedder)
         return json.dumps(
-            [{"id": p.id, "page": p.page, "title": p.title, "text": p.text[:600]} for p in hits],
+            [{"id": p.id, "page": p.page, "title": p.title, "text": p.text[:1500]} for p in hits],
             ensure_ascii=False,
         )
     if name == "quote":
