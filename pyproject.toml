@@ -1,0 +1,47 @@
+[project]
+name = "sitewitness"
+version = "0.1.0"
+description = "An agent over your site that shows its work: a trust protocol enforced in code, an eval runner, and a page with every answer's trace."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "Barbora Šandová" }]
+requires-python = ">=3.10"
+dependencies = [
+  "anthropic>=0.40",
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+  "rank-bm25>=0.2",
+  "quotecheck>=0.1",
+  "tomli>=2; python_version < '3.11'",
+]
+keywords = ["agent", "rag", "trust", "evaluation", "anthropic", "static-site"]
+classifiers = ["Programming Language :: Python :: 3", "License :: OSI Approved :: Apache Software License"]
+
+[project.optional-dependencies]
+embed = ["sentence-transformers>=2.7"]
+
+[project.scripts]
+sitewitness = "sitewitness.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/sandovabarbora/sitewitness"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sitewitness"]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.5", "httpx>=0.27"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
