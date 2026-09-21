@@ -6,8 +6,10 @@ import pytest
 HTML_A = """<!doctype html><html><head><title>t</title></head><body>
 <h1>Alpha <em>text</em></h1>
 <p class="kicker">Short kicker here.</p>
-<p>The alpha passage says that the wheelbase of new cars grew by sixty-eight millimetres between 2012 and 2022<sup class="cite"><a href="#r1">1</a></sup>.</p>
-<p>A second alpha passage states plainly: a prompt is a suggestion, IAM is a wall, and that is the whole point.</p>
+<p>The alpha passage says that the wheelbase of new cars grew by sixty-eight millimetres
+between 2012 and 2022<sup class="cite"><a href="#r1">1</a></sup>.</p>
+<p>A second alpha passage states plainly: a prompt is a suggestion, IAM is a wall,
+and that is the whole point.</p>
 <p>Too short.</p>
 <ul><li>A list item long enough to count as a passage of its own, with eight words at least.</li></ul>
 </body></html>"""
@@ -54,8 +56,18 @@ def site_dir(tmp_path: Path) -> Path:
     (tmp_path / "data").mkdir()
     (tmp_path / "texts" / "a.html").write_text(HTML_A)
     (tmp_path / "texts" / "b.md").write_text(MD_B)
-    (tmp_path / "data" / "surf.json").write_text(json.dumps(
-        {"generated": "2026-09-15", "skill": {"x": {"m": {"1": {"n": 14, "mae": 0.42}}}}, "list": [{"a": 1, "name": "one"}, {"a": 2, "name": "two"}], "vals": [0.5, 2.5, 1.0]}))
-    (tmp_path / "data" / "watch.json").write_text(json.dumps([{"date": "2026-08-20", "alias": "opus"}, {"date": "2026-09-14", "alias": "haiku"}]))
+    (tmp_path / "data" / "surf.json").write_text(
+        json.dumps(
+            {
+                "generated": "2026-09-15",
+                "skill": {"x": {"m": {"1": {"n": 14, "mae": 0.42}}}},
+                "list": [{"a": 1, "name": "one"}, {"a": 2, "name": "two"}],
+                "vals": [0.5, 2.5, 1.0],
+            }
+        )
+    )
+    (tmp_path / "data" / "watch.json").write_text(
+        json.dumps([{"date": "2026-08-20", "alias": "opus"}, {"date": "2026-09-14", "alias": "haiku"}])
+    )
     (tmp_path / "sitewitness.toml").write_text(TOML)
     return tmp_path
