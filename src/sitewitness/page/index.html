@@ -43,16 +43,6 @@ table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px
   const el = id => document.getElementById(id); const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   el('ex').innerHTML = EX.map(q=>`<button type="button">${esc(q)}</button>`).join('');
   el('ex').addEventListener('click', e=>{ if(e.target.tagName==='BUTTON'){ el('q').value=e.target.textContent; el('f').requestSubmit(); }});
-  try { const h = await (await fetch(API+'/health')).json(); el('facts').textContent = `${h.index.passages} passages · ${h.index.sources} data files · model ${h.model} · budget ${h.budget_usd} USD a day, ${h.spent_today_usd.toFixed(3)} spent today`; } catch { el('facts').textContent = 'API unreachable'; }
-  try {
-    const ev = await (await fetch('eval.json', {cache:'no-store'})).json(); const s = ev.summary;
-    el('evsum').textContent = `${s.correct} / ${s.n} golden questions correct on ${s.date} · ${s.protocol_violations} protocol violations · ${s.cost_usd} USD · median ${(s.median_ms/1000).toFixed(1)} s`;
-    el('eval').innerHTML = `<div class="wrap"><table><thead><tr><th>kind</th><th>question</th><th>answer (first line)</th><th>tools</th><th class="n">usd</th><th>ok</th></tr></thead><tbody>` + ev.rows.map(r=>`<tr><td class="dim">${r.kind}</td><td>${esc(r.q)}</td><td>${esc((r.answer||r.error||'').split('\n')[0].slice(0,110))}</td><td class="dim">${(r.tools||[]).join(' → ')}</td><td class="n">${r.cost_usd??'—'}</td><td class="${r.ok?'ok':'miss'}">${r.ok?'✓':'✗'}${r.protocol_violation?' <span class="miss">protocol</span>':''}</td></tr>`).join('') + '</tbody></table></div>';
-  } catch { el('evsum').textContent = 'No evaluation published yet.'; }
-  try {
-    const hist = await (await fetch('eval-history.json', {cache:'no-store'})).json();
-    el('history').innerHTML = `<div class="wrap"><table><thead><tr><th>date</th><th>model</th><th class="n">correct</th><th class="n">protocol</th><th class="n">usd</th><th class="n">median s</th></tr></thead><tbody>` + hist.slice().reverse().map(h=>`<tr><td>${h.date}</td><td class="dim">${esc(h.model||'')}</td><td class="n"><b>${h.correct} / ${h.n}</b></td><td class="n ${h.protocol_violations?'miss':''}">${h.protocol_violations}</td><td class="n">${h.cost_usd}</td><td class="n">${(h.median_ms/1000).toFixed(1)}</td></tr>`).join('') + '</tbody></table></div>';
-  } catch { el('history').innerHTML = ''; }
   el('f').addEventListener('submit', async e=>{
     e.preventDefault(); const q = el('q').value.trim(); if(!q) return; el('go').disabled = true; el('ans').textContent = '…'; el('trace').hidden = true;
     try {
@@ -66,6 +56,16 @@ table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px
       el('trace').hidden = false;
     } catch { el('ans').textContent = 'The API could not be reached.'; } finally { el('go').disabled = false; }
   });
+  try { const h = await (await fetch(API+'/health')).json(); el('facts').textContent = `${h.index.passages} passages · ${h.index.sources} data files · model ${h.model} · budget ${h.budget_usd} USD a day, ${h.spent_today_usd.toFixed(3)} spent today`; } catch { el('facts').textContent = 'API unreachable'; }
+  try {
+    const ev = await (await fetch('eval.json', {cache:'no-store'})).json(); const s = ev.summary;
+    el('evsum').textContent = `${s.correct} / ${s.n} golden questions correct on ${s.date} · ${s.protocol_violations} protocol violations · ${s.cost_usd} USD · median ${(s.median_ms/1000).toFixed(1)} s`;
+    el('eval').innerHTML = `<div class="wrap"><table><thead><tr><th>kind</th><th>question</th><th>answer (first line)</th><th>tools</th><th class="n">usd</th><th>ok</th></tr></thead><tbody>` + ev.rows.map(r=>`<tr><td class="dim">${r.kind}</td><td>${esc(r.q)}</td><td>${esc((r.answer||r.error||'').split('\n')[0].slice(0,110))}</td><td class="dim">${(r.tools||[]).join(' → ')}</td><td class="n">${r.cost_usd??'—'}</td><td class="${r.ok?'ok':'miss'}">${r.ok?'✓':'✗'}${r.protocol_violation?' <span class="miss">protocol</span>':''}</td></tr>`).join('') + '</tbody></table></div>';
+  } catch { el('evsum').textContent = 'No evaluation published yet.'; }
+  try {
+    const hist = await (await fetch('eval-history.json', {cache:'no-store'})).json();
+    el('history').innerHTML = `<div class="wrap"><table><thead><tr><th>date</th><th>model</th><th class="n">correct</th><th class="n">protocol</th><th class="n">usd</th><th class="n">median s</th></tr></thead><tbody>` + hist.slice().reverse().map(h=>`<tr><td>${h.date}</td><td class="dim">${esc(h.model||'')}</td><td class="n"><b>${h.correct} / ${h.n}</b></td><td class="n ${h.protocol_violations?'miss':''}">${h.protocol_violations}</td><td class="n">${h.cost_usd}</td><td class="n">${(h.median_ms/1000).toFixed(1)}</td></tr>`).join('') + '</tbody></table></div>';
+  } catch { el('history').innerHTML = ''; }
 })();
 </script>
 </body>
