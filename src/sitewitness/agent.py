@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import time
 
+from quotecheck import fold
+
 from sitewitness.client import ModelClient, to_api_content
 from sitewitness.config import Config
 from sitewitness.index import Embedder, Index
@@ -22,8 +24,9 @@ def system_prompt(config: Config) -> str:
         "Rules, which are enforced in code and scored:\n"
         "1. Every number you state must come from a tool result in this conversation (read_data or a passage from search). "
         "Do not compute, extrapolate or recall numbers; if no tool result contains it, say so.\n"
-        '2. Every quotation in quotation marks must first be verified with the quote tool and come back "found". '
-        "Otherwise paraphrase without quotation marks.\n"
+        "2. Put words in quotation marks only when they are verbatim from a tool result; for anything longer than a "
+        'few words, call the quote tool first and quote only what came back "found". Otherwise paraphrase without '
+        "quotation marks.\n"
         "3. Always call at least one tool before answering. If the question is not about this site, or no tool result answers it, "
         f"reply exactly: {DECLINE} — and one sentence on what the site does have. Never write code, poems, general "
         "explanations, opinions or advice; you are not a general assistant.\n"
@@ -131,6 +134,7 @@ class Agent:
                     else:
                         trace.quotes_absent += 1
                 trace.tools.append(call)
+                trace.evidence += fold(out)[0]
                 results.append({"type": "tool_result", "tool_use_id": tu.id, "content": out})
             messages.append({"role": "user", "content": results})
         if stop == "wall_time" and not answer:

@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass, field
 
+from quotecheck import fold
+
 from sitewitness.config import ProtocolConfig
 from sitewitness.index import Index
 
@@ -47,6 +49,10 @@ class Trace:
     enforced: str | None = None
     budget_spent_usd: float = 0.0
     limited: str | None = None
+    original: str | None = None  # the model's answer before enforcement replaced it
+    evidence: str = (
+        ""  # folded text of every tool result in the conversation; quotations are checked against it
+    )
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -61,11 +67,34 @@ def _sources(answer: str) -> tuple[str, list[str]]:
 
 
 def _source_known(item: str, index: Index) -> bool:
-    item = re.sub(r"^https?://[^/]+", "", item).split("#")[0].split("?")[0]
-    if item in index.sources or item.lstrip("/") in index.sources:
+    item = item.strip().strip("`'\"()[]<>")
+    item = re.sub(r"^https?://[^/]+", "", item).split("#")[0].split("?")[0].strip()
+    if not item:
+        return True  # an empty token from a stray separator is not a claim
+    rel = item.lstrip("/")
+    if rel in index.sources or rel.rstrip("/") in index.sources:
         return True
-    page = "/" + item.strip("/")
-    return page in index.pages or page.rstrip("/") in index.pages or (page + "/") in index.pages
+    page = "/" + re.sub(r"\.(html?|md)$", "", rel).strip("/")
+    if page in index.pages or (page + "/") in index.pages:
+        return True
+    # a passage id such as "surf#3" or a bare file stem also names a page the index knows
+    stem = rel.split("#")[0].rsplit("/", 1)[-1]
+    return any(p.rsplit("/", 1)[-1] == stem for p in index.pages)
+
+
+def _unverified_quote(body: str, trace: Trace) -> bool:
+    """A quotation of 40+ characters counts as verified when the quote tool returned found, or when the
+    quoted words occur verbatim (folded) in a tool result of this conversation: the evidence is there."""
+    runs = [m.group(0)[1:-1] for m in QUOTE_RUN.finditer(body)]
+    if not runs:
+        return False
+    if trace.quotes_verified:
+        return False
+    for run in runs:
+        needle, _ = fold(run)
+        if not needle or needle not in trace.evidence:
+            return True
+    return False
 
 
 def enforce(answer: str, trace: Trace, config: ProtocolConfig, index: Index) -> tuple[str, Trace]:
@@ -78,9 +107,7 @@ def enforce(answer: str, trace: Trace, config: ProtocolConfig, index: Index) -> 
         and bool(re.search(r"\d", body))
         and not trace.numbers_from_tools,
         "forbid_code": config.forbid_code and bool(CODE.search(body)),
-        "quotes_need_verification": config.quotes_need_verification
-        and bool(QUOTE_RUN.search(body))
-        and trace.quotes_verified == 0,
+        "quotes_need_verification": config.quotes_need_verification and _unverified_quote(body, trace),
         "sources_must_exist": config.sources_must_exist and any(not _source_known(s, index) for s in sources),
     }
     trace.declined = declined
@@ -92,5 +119,6 @@ def enforce(answer: str, trace: Trace, config: ProtocolConfig, index: Index) -> 
         if violated:
             trace.enforced = rule
             trace.declined = True
+            trace.original = answer
             return DECLINE + DECLINE_TAIL, trace
     return answer, trace

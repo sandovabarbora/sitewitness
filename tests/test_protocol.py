@@ -64,6 +64,26 @@ def test_sources_must_exist(idx):
     assert t.enforced is None
 
 
+def test_quote_verbatim_in_tool_evidence_counts(idx):
+    q = '"a prompt is a suggestion, IAM is a wall, and that is the whole point"'
+    t = tr(tools=["search"], data=True)
+    t.evidence = fold_text(
+        "... A second alpha passage states plainly: a prompt is a suggestion, IAM is a wall, and that is the whole point. ..."
+    )
+    _, t = enforce(f"The text says {q}.\nSources: /texts/a", t, ProtocolConfig(), idx)
+    assert t.enforced is None
+    t = tr(tools=["search"], data=True)
+    t.evidence = fold_text("something else entirely")
+    _, t = enforce(f"The text says {q}.\nSources: /texts/a", t, ProtocolConfig(), idx)
+    assert t.enforced == "quotes_need_verification"
+
+
+def fold_text(s):
+    from quotecheck import fold
+
+    return fold(s)[0]
+
+
 def test_decline_is_never_enforced(idx):
     a, t = enforce(f"{DECLINE} The site has 3 things.", tr(), ProtocolConfig(), idx)
     assert t.enforced is None and t.declined and a.startswith(DECLINE)
