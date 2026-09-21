@@ -82,3 +82,16 @@ def test_forwarded_header_is_ignored_unless_trusted(site_dir, monkeypatch):
     assert client_ip(R(), "X-Forwarded-For") == "9.9.9.9"
     R.headers = {"CF-Connecting-IP": "not-an-ip"}
     assert client_ip(R(), "CF-Connecting-IP") == "127.0.0.1"
+
+
+def test_proxy_key_required_when_configured(site_dir, monkeypatch):
+    cfg = load_config(site_dir / "sitewitness.toml")
+    cfg.server.proxy_key_env = "SW_PROXY"
+    monkeypatch.setenv("SW_PROXY", "p-secret")
+    agent = Agent(
+        cfg, build_index(cfg), FakeClient([text(DECLINE + " x")] * 3), Gate(MemoryStore(), cfg.limits)
+    )
+    c = TestClient(create_app(agent, cfg))
+    assert c.post("/ask", json={"question": "hello?"}).status_code == 403
+    assert c.post("/ask", json={"question": "hello?"}, headers={"X-Proxy-Key": "wrong"}).status_code == 403
+    assert c.post("/ask", json={"question": "hello?"}, headers={"X-Proxy-Key": "p-secret"}).status_code == 200

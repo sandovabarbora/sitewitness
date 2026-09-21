@@ -34,7 +34,7 @@ def create_app(agent: Agent, config: Config) -> FastAPI:
         CORSMiddleware,
         allow_origins=config.server.allowed_origins,
         allow_methods=["POST", "GET", "OPTIONS"],
-        allow_headers=["content-type", "x-eval-key"],
+        allow_headers=["content-type", "x-eval-key", "x-proxy-key"],
     )
 
     @app.get("/health")
@@ -49,8 +49,17 @@ def create_app(agent: Agent, config: Config) -> FastAPI:
             "version": __version__,
         }
 
+    def proxy_ok(request: Request) -> bool:
+        if not config.server.proxy_key_env:
+            return True
+        want = os.environ.get(config.server.proxy_key_env, "")
+        got = request.headers.get("X-Proxy-Key", "")
+        return bool(want) and hmac.compare_digest(got.encode(), want.encode())
+
     @app.post("/ask")
     async def ask(request: Request):
+        if not proxy_ok(request):
+            return JSONResponse({"error": "forbidden"}, status_code=403)
         try:
             body = await request.json()
         except Exception:  # noqa: BLE001

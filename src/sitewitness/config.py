@@ -56,6 +56,9 @@ class ServerConfig:
     # "X-Forwarded-For" behind a proxy you control; empty = the peer address. Anyone can send these
     # headers, so trust one only when a proxy in front of you overwrites it.
     trusted_ip_header: str = ""
+    # when set, every request must carry X-Proxy-Key equal to this environment variable's value;
+    # for a server that sits behind a proxy (the proxy adds the header) and must not be reached around it
+    proxy_key_env: str = ""
 
 
 @dataclass
