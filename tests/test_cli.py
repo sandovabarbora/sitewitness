@@ -52,9 +52,6 @@ def test_eval_exit_code(site_dir, tmp_path, monkeypatch):
             }
         )
     )
-    import sitewitness.cli as cli
-
-    monkeypatch.setattr(cli, "load_config", lambda p: cli.load_config(site_dir / "sitewitness.toml"))
     from sitewitness import evaluate
 
     monkeypatch.setattr(
@@ -64,22 +61,8 @@ def test_eval_exit_code(site_dir, tmp_path, monkeypatch):
             lambda q: {"answer": "I can't answer that from this site.", "trace": {"declined": True}}
         ),
     )
-    assert main(["eval", str(golden), "--api", "http://x", "--out", str(tmp_path), "--pause", "0"]) == 1
-    assert (
-        main(
-            [
-                "eval",
-                str(golden),
-                "--api",
-                "http://x",
-                "--out",
-                str(tmp_path),
-                "--pause",
-                "0",
-                "--allowed-misses",
-                "1",
-            ]
-        )
-        == 0
-    )
+    cfg = str(site_dir / "sitewitness.toml")
+    base = ["--config", cfg, "eval", str(golden), "--api", "http://x", "--out", str(tmp_path), "--pause", "0"]
+    assert main(base) == 1
+    assert main(base + ["--allowed-misses", "1"]) == 0
     assert (tmp_path / "eval-history.json").exists()
