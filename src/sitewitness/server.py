@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import logging
 import os
 
@@ -19,9 +20,11 @@ log = logging.getLogger("sitewitness")
 
 def client_ip(request: Request, trusted_header: str = "") -> str:
     if trusted_header:
-        v = request.headers.get(trusted_header)
-        if v:
-            return v.split(",")[0].strip()
+        v = (request.headers.get(trusted_header) or "").split(",")[0].strip()
+        try:
+            return str(ipaddress.ip_address(v))  # a spoofed or malformed value falls back to the peer
+        except ValueError:
+            pass
     return request.client.host if request.client else "0"
 
 

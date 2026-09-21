@@ -80,3 +80,5 @@ def test_forwarded_header_is_ignored_unless_trusted(site_dir, monkeypatch):
     assert client_ip(R()) == "127.0.0.1"
     assert client_ip(R(), "CF-Connecting-IP") == "8.8.8.8"
     assert client_ip(R(), "X-Forwarded-For") == "9.9.9.9"
+    R.headers = {"CF-Connecting-IP": "not-an-ip"}
+    assert client_ip(R(), "CF-Connecting-IP") == "127.0.0.1"
