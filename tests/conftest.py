@@ -71,3 +71,68 @@ def site_dir(tmp_path: Path) -> Path:
     )
     (tmp_path / "sitewitness.toml").write_text(TOML)
     return tmp_path
+
+
+class FakeClient:
+    """Returns scripted responses in order and records what it was asked."""
+
+    def __init__(self, script, model="test-model-2026"):
+        from collections import deque
+
+        self.script = deque(script)
+        self.calls = []
+        self.model = model
+
+    def create(self, system, messages, tools, max_tokens):
+        from sitewitness.client import Response
+
+        self.calls.append(
+            {
+                "system": system,
+                "messages": [dict(m) for m in messages],
+                "tools": tools,
+                "max_tokens": max_tokens,
+            }
+        )
+        if not self.script:
+            raise RuntimeError("script exhausted")
+        r = self.script.popleft()
+        if isinstance(r, Exception):
+            raise r
+        if not r.model:
+            r = Response(r.content, r.stop_reason, r.usage_in, r.usage_out, self.model)
+        return r
+
+
+def text(t, usage=(100, 20)):
+    from sitewitness.client import Block, Response
+
+    return Response([Block("text", text=t)], "end_turn", *usage)
+
+
+def tool(name, inp, tid="t1", usage=(100, 10), pre_text=""):
+    from sitewitness.client import Block, Response
+
+    blocks = ([Block("text", text=pre_text)] if pre_text else []) + [
+        Block("tool_use", id=tid, name=name, input=inp)
+    ]
+    return Response(blocks, "tool_use", *usage)
+
+
+@pytest.fixture
+def agent_factory(site_dir):
+    from sitewitness.agent import Agent
+    from sitewitness.config import load_config
+    from sitewitness.index import build_index
+    from sitewitness.limits import Gate, MemoryStore
+
+    def make(script, limits=None):
+        cfg = load_config(site_dir / "sitewitness.toml")
+        if limits:
+            for k, v in limits.items():
+                setattr(cfg.limits, k, v)
+        idx = build_index(cfg)
+        client = FakeClient(script)
+        return Agent(cfg, idx, client, Gate(MemoryStore(), cfg.limits)), client
+
+    return make
