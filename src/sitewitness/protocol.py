@@ -9,7 +9,10 @@ from sitewitness.config import ProtocolConfig
 from sitewitness.index import Index
 
 DECLINE = "I can't answer that from this site."
-DECLINE_TAIL = " This assistant answers only from the site's data files and texts, with every number and quotation traced to a tool result."
+DECLINE_TAIL = (
+    " This assistant answers only from the site's data files and texts, "
+    "with every number and quotation traced to a tool result."
+)
 QUOTE_RUN = re.compile(r"[\"“„][^\"”“]{40,}[\"”“]")
 CODE = re.compile(r"```|^\s*(def|import|from)\s+\w|</?[a-zA-Z][^>]*>", re.M)
 SOURCES_LINE = re.compile(r"^Sources?:\s*(.+)$", re.M | re.I)
@@ -66,9 +69,9 @@ def _source_known(item: str, index: Index) -> bool:
 
 
 def enforce(answer: str, trace: Trace, config: ProtocolConfig, index: Index) -> tuple[str, Trace]:
+    """First violated rule wins, replaces the answer with the decline, and is named in trace.enforced."""
     body, sources = _sources(answer)
     declined = answer.strip().startswith(DECLINE)
-    tool_names = {t.name for t in trace.tools}
     checks = {
         "require_tool_use": config.require_tool_use and not trace.tools,
         "numbers_need_tool": config.numbers_need_tool
@@ -80,15 +83,14 @@ def enforce(answer: str, trace: Trace, config: ProtocolConfig, index: Index) -> 
         and trace.quotes_verified == 0,
         "sources_must_exist": config.sources_must_exist and any(not _source_known(s, index) for s in sources),
     }
-    trace.protocol = {k: bool(v) for k, v in checks.items()}
     trace.declined = declined
     if declined:
-        trace.protocol = {k: False for k in checks}
+        trace.protocol = dict.fromkeys(checks, False)
         return answer, trace
+    trace.protocol = {k: bool(v) for k, v in checks.items()}
     for rule, violated in checks.items():
         if violated:
             trace.enforced = rule
             trace.declined = True
-            _ = tool_names
             return DECLINE + DECLINE_TAIL, trace
     return answer, trace
