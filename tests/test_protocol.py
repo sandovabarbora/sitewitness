@@ -73,15 +73,21 @@ def test_quote_verbatim_in_tool_evidence_counts(idx):
     _, t = enforce(f"The text says {q}.\nSources: /texts/a", t, ProtocolConfig(), idx)
     assert t.enforced is None
     t = tr(tools=["search"], data=True)
+    t.evidence = fold_text('{"subject": "changelog: page generated; linked from status"}')
+    _, t = enforce(
+        'It says "changelog page generated, linked from status".\nSources: /texts/a', t, ProtocolConfig(), idx
+    )
+    assert t.enforced is None  # punctuation differences do not matter
+    t = tr(tools=["search"], data=True)
     t.evidence = fold_text("something else entirely")
     _, t = enforce(f"The text says {q}.\nSources: /texts/a", t, ProtocolConfig(), idx)
     assert t.enforced == "quotes_need_verification"
 
 
 def fold_text(s):
-    from quotecheck import fold
+    from sitewitness.protocol import squash
 
-    return fold(s)[0]
+    return squash(s)
 
 
 def test_decline_is_never_enforced(idx):

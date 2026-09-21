@@ -5,16 +5,18 @@ from __future__ import annotations
 import json
 import time
 
-from quotecheck import fold
-
 from sitewitness.client import ModelClient, to_api_content
 from sitewitness.config import Config
 from sitewitness.index import Embedder, Index
 from sitewitness.limits import Gate
-from sitewitness.protocol import DECLINE, ToolCall, Trace, enforce
+from sitewitness.protocol import DECLINE, ToolCall, Trace, enforce, squash
 from sitewitness.tools import TOOL_SCHEMAS, run_tool
 
-EVIDENCE_TOOLS = ("read_data", "search")
+EVIDENCE_TOOLS = (
+    "read_data",
+    "search",
+    "describe_source",
+)  # each returns site content a number can come from
 
 
 def system_prompt(config: Config) -> str:
@@ -134,7 +136,7 @@ class Agent:
                     else:
                         trace.quotes_absent += 1
                 trace.tools.append(call)
-                trace.evidence += fold(out)[0]
+                trace.evidence += squash(out)
                 results.append({"type": "tool_result", "tool_use_id": tu.id, "content": out})
             messages.append({"role": "user", "content": results})
         if stop == "wall_time" and not answer:

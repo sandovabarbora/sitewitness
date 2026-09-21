@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 import re
+import string
 from dataclasses import asdict, dataclass, field
 
 from quotecheck import fold
 
 from sitewitness.config import ProtocolConfig
 from sitewitness.index import Index
+
+_PUNCT = str.maketrans("", "", string.punctuation + "…·—–")
+
+
+def squash(s: str) -> str:
+    """fold() plus every punctuation mark removed: a quotation matches on its words alone."""
+    return fold(s)[0].translate(_PUNCT)
+
 
 DECLINE = "I can't answer that from this site."
 DECLINE_TAIL = (
@@ -91,7 +100,7 @@ def _unverified_quote(body: str, trace: Trace) -> bool:
     if trace.quotes_verified:
         return False
     for run in runs:
-        needle, _ = fold(run)
+        needle = squash(run)
         if not needle or needle not in trace.evidence:
             return True
     return False
