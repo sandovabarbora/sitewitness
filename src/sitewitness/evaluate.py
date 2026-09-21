@@ -15,7 +15,8 @@ DECLINE_MARK = "I can't answer that from this site"
 
 
 def _norm(s: str) -> str:
-    return re.sub(r"[\s ]", "", s.lower())
+    s = re.sub(r"(?<=\d)[,\u202f\u00a0 ](?=\d{3}\b)", "", s)  # thousands separators
+    return re.sub(r"[\s\u00a0]", "", s.lower())
 
 
 def score(item: dict, answer: str, trace: dict) -> bool:
