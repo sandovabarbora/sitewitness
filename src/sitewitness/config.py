@@ -52,6 +52,10 @@ class ProtocolConfig:
 class ServerConfig:
     allowed_origins: list[str] = field(default_factory=lambda: ["http://localhost:8000"])
     eval_key_env: str = "SITEWITNESS_EVAL_KEY"
+    # header that carries the real client address, e.g. "CF-Connecting-IP" behind Cloudflare or
+    # "X-Forwarded-For" behind a proxy you control; empty = the peer address. Anyone can send these
+    # headers, so trust one only when a proxy in front of you overwrites it.
+    trusted_ip_header: str = ""
 
 
 @dataclass

@@ -42,7 +42,7 @@ def test_ask_200_with_trace(app_factory):
 def test_upstream_error_502(app_factory):
     c, _ = app_factory([RuntimeError("boom")])
     r = c.post("/ask", json={"question": "what is here?"})
-    assert r.status_code == 502 and "boom" in r.json()["error"]
+    assert r.status_code == 502 and "boom" not in r.json()["error"]
 
 
 def test_health(app_factory):
@@ -66,3 +66,17 @@ def test_eval_key_bypasses_rate_only(app_factory):
         c.post("/ask", json={"question": "four?"}, headers={"X-Eval-Key": "wrong"}).json()["trace"]["limited"]
         == "rate"
     )
+
+
+def test_forwarded_header_is_ignored_unless_trusted(site_dir, monkeypatch):
+    from sitewitness.server import client_ip
+
+    class R:
+        headers = {"X-Forwarded-For": "9.9.9.9, 1.1.1.1", "CF-Connecting-IP": "8.8.8.8"}
+
+        class client:
+            host = "127.0.0.1"
+
+    assert client_ip(R()) == "127.0.0.1"
+    assert client_ip(R(), "CF-Connecting-IP") == "8.8.8.8"
+    assert client_ip(R(), "X-Forwarded-For") == "9.9.9.9"

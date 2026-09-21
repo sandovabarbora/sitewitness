@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hmac
+import logging
 import os
 
 from fastapi import FastAPI, Request
@@ -12,10 +14,12 @@ from sitewitness import __version__
 from sitewitness.agent import Agent
 from sitewitness.config import Config
 
+log = logging.getLogger("sitewitness")
 
-def client_ip(request: Request) -> str:
-    for h in ("CF-Connecting-IP", "X-Forwarded-For"):
-        v = request.headers.get(h)
+
+def client_ip(request: Request, trusted_header: str = "") -> str:
+    if trusted_header:
+        v = request.headers.get(trusted_header)
         if v:
             return v.split(",")[0].strip()
     return request.client.host if request.client else "0"
@@ -52,10 +56,14 @@ def create_app(agent: Agent, config: Config) -> FastAPI:
         if len(q) < 3:
             return JSONResponse({"error": "ask something"}, status_code=400)
         key = os.environ.get(config.server.eval_key_env, "")
-        eval_run = bool(key) and request.headers.get("X-Eval-Key") == key
+        given = request.headers.get("X-Eval-Key", "")
+        eval_run = bool(key) and hmac.compare_digest(given.encode(), key.encode())
         try:
-            return agent.ask(q, ip=client_ip(request), eval_run=eval_run).to_dict()
-        except Exception as e:  # noqa: BLE001
-            return JSONResponse({"error": str(e)[:300]}, status_code=502)
+            return agent.ask(
+                q, ip=client_ip(request, config.server.trusted_ip_header), eval_run=eval_run
+            ).to_dict()
+        except Exception:  # noqa: BLE001 - the model or a tool failed; details go to the log, not the client
+            log.exception("ask failed")
+            return JSONResponse({"error": "the assistant could not answer right now"}, status_code=502)
 
     return app
