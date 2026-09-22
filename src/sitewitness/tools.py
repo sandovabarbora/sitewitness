@@ -28,7 +28,7 @@ TOOL_SCHEMAS: list[dict] = [
     },
     {
         "name": "read_data",
-        "description": "Read part of a data file. `path` is dotted/indexed (e.g. 'skill.x.m.1'); `find` keeps only array items whose JSON contains the substring. Output is clipped, so narrow the path.",
+        "description": "Read part of a data file. `path` is dotted/indexed (e.g. 'skill.x.m.1'); for an array, pass `find` (a substring such as a date, an alias or a name) to get only the matching items in one call instead of reading items one by one. Output is clipped, so narrow the path.",
         "input_schema": {
             "type": "object",
             "properties": {

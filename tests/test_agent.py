@@ -82,3 +82,4 @@ def test_system_prompt_has_rules_and_no_site_content(agent_factory):
     agent.ask("hi")
     s = client.calls[0]["system"]
     assert "fixture" in s and "Sources:" in s and "alpha passage" not in s
+    assert "data/surf.json: Surf verification data" in s and "/texts/a" in s  # what exists, not its contents
