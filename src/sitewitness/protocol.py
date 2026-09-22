@@ -76,6 +76,7 @@ def _sources(answer: str) -> tuple[str, list[str]]:
 
 
 def _source_known(item: str, index: Index) -> bool:
+    item = re.sub(r"\s*[\(\[].*?[\)\]]\s*", " ", item)  # "surf/data.json (climatology.ericeira)" → the path
     item = item.strip().strip("`'\"()[]<>")
     item = re.sub(r"^https?://[^/]+", "", item).split("#")[0].split("?")[0].strip()
     if not item:

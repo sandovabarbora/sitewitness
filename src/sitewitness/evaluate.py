@@ -69,6 +69,7 @@ def run_eval(
                 "enforced": tr.get("enforced"),
                 "protocol_violation": violated,
                 "model": tr.get("model_used") or tr.get("model"),
+                "original": tr.get("original"),
             }
         )
         if pause:
